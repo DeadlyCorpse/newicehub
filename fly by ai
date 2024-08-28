@@ -1,0 +1,62 @@
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local flying = false
+local speed = 50
+
+local UIS = game:GetService("UserInputService")
+
+local function Fly()
+    local char = player.Character
+    local humanoid = char:WaitForChild("Humanoid")
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+
+    local bg = Instance.new("BodyGyro", rootPart)
+    bg.P = 9e4
+    bg.MaxTorque = Vector3.new(9e4, 9e4, 9e4)
+    bg.CFrame = rootPart.CFrame
+
+    local bv = Instance.new("BodyVelocity", rootPart)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.MaxForce = Vector3.new(9e4, 9e4, 9e4)
+
+    flying = true
+
+    while flying do
+        humanoid.PlatformStand = true
+
+        local direction = Vector3.new(0, 0, 0)
+        if UIS.TouchEnabled then
+            local moveVector = UIS:GetDeviceRotation().Position
+            direction = Vector3.new(moveVector.X, moveVector.Y, 0) * speed
+        end
+
+        bv.Velocity = direction
+        bg.CFrame = workspace.CurrentCamera.CoordinateFrame
+        wait()
+    end
+
+    humanoid.PlatformStand = false
+    bg:Destroy()
+    bv:Destroy()
+end
+
+local function ToggleFly()
+    if not flying then
+        Fly()
+    else
+        flying = false
+    end
+end
+
+-- Mobile Button
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local button = Instance.new("TextButton", screenGui)
+button.Size = UDim2.new(0.2, 0, 0.1, 0)
+button.Position = UDim2.new(0.4, 0, 0.9, 0)
+button.Text = "Fly"
+button.TextScaled = true
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+
+button.MouseButton1Click:Connect(function()
+    ToggleFly()
+end)
