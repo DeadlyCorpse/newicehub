@@ -1,11 +1,32 @@
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local flying = false
-local speed = 50
-local touchInput = nil
-
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
+
+local flying = false
+local speed = 50
+
+-- Create UI elements
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local button = Instance.new("TextButton", screenGui)
+button.Size = UDim2.new(0.2, 0, 0.1, 0)
+button.Position = UDim2.new(0.4, 0, 0.9, 0)
+button.Text = "Fly"
+button.TextScaled = true
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+
+local joystick = Instance.new("Frame", screenGui)
+joystick.Size = UDim2.new(0.2, 0, 0.2, 0)
+joystick.Position = UDim2.new(0.05, 0, 0.7, 0)
+joystick.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+joystick.AnchorPoint = Vector2.new(0.5, 0.5)
+joystick.BackgroundTransparency = 0.5
+
+local knob = Instance.new("Frame", joystick)
+knob.Size = UDim2.new(0.3, 0, 0.3, 0)
+knob.Position = UDim2.new(0.5, 0, 0.5, 0)
+knob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+knob.AnchorPoint = Vector2.new(0.5, 0.5)
+knob.BackgroundTransparency = 0.5
 
 local function Fly()
     local char = player.Character
@@ -28,20 +49,16 @@ local function Fly()
             humanoid.PlatformStand = true
 
             -- Joystick Input
-            local joystick = player.PlayerGui:FindFirstChild("ScreenGui"):FindFirstChild("Joystick")
-            if joystick then
-                local joystickInput = joystick.Position
-                local moveDirection = Vector3.new((joystickInput.X - 0.5) * 2, 0, (joystickInput.Y - 0.5) * 2).Unit
-                bv.Velocity = (workspace.CurrentCamera.CFrame.LookVector * moveDirection.Z + workspace.CurrentCamera.CFrame.RightVector * moveDirection.X) * speed
-            else
-                bv.Velocity = Vector3.new(0, 0, 0)
-            end
+            local joystickPosition = joystick.AbsolutePosition
+            local joystickSize = joystick.AbsoluteSize
+            local knobPosition = knob.Position
+            local moveDirection = (Vector2.new(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y) - joystickPosition - (joystickSize / 2)) / (joystickSize / 2)
+            local direction = Vector3.new(moveDirection.X, 0, moveDirection.Y).Unit
 
+            bv.Velocity = (workspace.CurrentCamera.CFrame.LookVector * direction.Z + workspace.CurrentCamera.CFrame.RightVector * direction.X) * speed
             bg.CFrame = workspace.CurrentCamera.CFrame
         end
     end)
-
-    player.Character:WaitForChild("Humanoid").PlatformStand = true
 end
 
 local function ToggleFly()
@@ -53,15 +70,26 @@ local function ToggleFly()
     end
 end
 
--- Mobile Button
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local button = Instance.new("TextButton", screenGui)
-button.Size = UDim2.new(0.2, 0, 0.1, 0)
-button.Position = UDim2.new(0.4, 0, 0.9, 0)
-button.Text = "Fly"
-button.TextScaled = true
-button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-
+-- Button to toggle flying
 button.MouseButton1Click:Connect(function()
     ToggleFly()
 end)
+
+-- Joystick functionality
+local function updateJoystick(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        local touchPosition = input.Position
+        local joystickPosition = joystick.AbsolutePosition
+        local joystickSize = joystick.AbsoluteSize
+        local moveDirection = (touchPosition - joystickPosition - (joystickSize / 2)) / (joystickSize / 2)
+        moveDirection = Vector2.new(math.clamp(moveDirection.X, -1, 1), math.clamp(moveDirection.Y, -1, 1))
+        knob.Position = UDim2.new(0.5 + moveDirection.X * 0.5, 0, 0.5 + moveDirection.Y * 0.5, 0)
+    end
+end
+
+local function resetJoystick()
+    knob.Position = UDim2.new(0.5, 0, 0.5, 0)
+end
+
+UIS.InputBegan:Connect(updateJoystick)
+UIS.InputEnded:Connect(resetJoystick)
